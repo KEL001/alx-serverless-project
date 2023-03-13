@@ -6,6 +6,8 @@ import { TodoUpdate } from '../models/TodoUpdate';
 import {PromiseResult} from "aws-sdk/lib/request";
 import {AWSError} from "aws-sdk";
 
+const BUCKET_NAME = process.env.ATTACHMENT_S3_BUCKET;
+
 const AWSXRay = require('aws-xray-sdk');
 
 const XAWS = AWSXRay.captureAWS(AWS)
@@ -46,7 +48,7 @@ export const handleCreateTodo = async (input: TodoItem): Promise<TodoItem> => {
     logger.info(`Creating TODO for ${input.userId}...`);
     await client.put({
         TableName: TABLE,
-        Item: input,
+        Item: input as any,
     }).promise();
 
     logger.info(`Created TODO for ${input.userId}`);
@@ -109,4 +111,33 @@ export const handleUpdateTodoWithUrl = (userId: string, todoId: string, url: str
             ':url': url,
         }
     }).promise();
+};
+
+export const getSingleTodo = async (todoId: string, userId: string): Promise<TodoItem> => {
+    logger.info(`Getting todo item with id ${todoId} for user with id ${userId}`)
+    const result = await client
+        .get({
+            TableName: TABLE,
+            Key: { userId, todoId }
+        })
+        .promise()
+    logger.info(`Todo item with id ${todoId} retrieved successfully by user with id ${userId}`)
+
+    return result.Item as TodoItem
+}
+
+export const updateAttachment = async (userId, todoId): Promise<void> => {
+    logger.info(`Updating attachment named ${todoId} by user with id ${userId}`);
+    const attachmentUrl: string = `https://${BUCKET_NAME}.s3.amazonaws.com/${todoId}`
+    await client.update({
+        TableName: TABLE,
+        Key: { userId, todoId },
+        UpdateExpression: "set attachmentUrl=:attachmentUrl",
+        ExpressionAttributeValues: {
+            ":attachmentUrl": attachmentUrl
+        },
+        ReturnValues: "NONE"
+    }).promise();
+    logger.info(`Updated attachment named ${todoId} by user with id ${userId} Successfully`);
+
 };

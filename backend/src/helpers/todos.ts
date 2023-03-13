@@ -3,9 +3,10 @@ import {
     handleDeleteTodo,
     handleFetchTodo,
     handleUpdateTodo,
-    handleUpdateTodoWithUrl
+    getSingleTodo,
+    updateAttachment
 } from './todosAcess'
-import { AttachmentUtils } from './attachmentUtils';
+import { getAttachmentUploadURL } from './attachmentUtils';
 import { TodoItem } from '../models/TodoItem'
 import { CreateTodoRequest } from '../requests/CreateTodoRequest'
 import { UpdateTodoRequest } from '../requests/UpdateTodoRequest'
@@ -87,14 +88,16 @@ export const deleteTodo = async (userId: string, todoId: string): Promise<void |
  * @param todoId
  * @param attachmentId
  */
-export const createAttachmentPresignedUrl = async (userId: string, todoId: string, attachmentId: string): Promise<string | Error> => {
-    try {
-        logger.info(`Updating TODO: ${todoId} with URL by ${userId}`);
-        const data = await AttachmentUtils(attachmentId);
-        await handleUpdateTodoWithUrl(userId, todoId, data.uploadUrl);
-        return data.s3SignedUrl;
-    } catch(e) {
-        logger.error(`Error Occurred: ${e}`);
-        return createError(400, e);
-    }
+
+export const createAttachmentPresignedUrl = async (todoId: string, userId: string): Promise<string> => {
+    logger.info(`Updating TODO: ${todoId} with URL by ${userId}`);
+    const existingTodo = await getSingleTodo(todoId, userId);
+
+    if (!existingTodo) throw new createError.NotFound('Todo does not exist');
+
+    const uploadUrl = getAttachmentUploadURL(todoId);
+    logger.info(`uploadUrl is ${uploadUrl}`);
+    await updateAttachment(userId, todoId);
+
+    return uploadUrl;
 }

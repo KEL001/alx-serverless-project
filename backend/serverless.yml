@@ -8,6 +8,8 @@ plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
   - serverless-plugin-tracing
+  - serverless-reqvalidator-plugin
+  - serverless-aws-documentation
 
 provider:
   name: aws
@@ -42,6 +44,21 @@ provider:
             - xray:PutTelemetryRecords
             - xray:PutTraceSegments
           Resource: "*"
+
+custom:
+  documentation:
+    api:
+      info:
+        version: v1.0.0
+        title: ALX Serverless Todo App
+        description: Final Project for Cloud developer
+    models:
+      - name: CreateTodoRequest
+        contentType: application/json
+        schema:  ${file(models/create-todo-model.json)}
+      - name: UpdateTodoRequest
+        contentType: application/json
+        schema:  ${file(models/update-todo-model.json)}
 
 
 functions:
@@ -157,8 +174,11 @@ functions:
       - Effect: Allow
         Action:
           - xray:PutTraceSegments
-        Resource:
-          - '*'
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+        Resource: "arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*"
 
 resources:
   Resources:
