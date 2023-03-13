@@ -5,11 +5,13 @@ import { cors } from 'middy/middlewares'
 import { CreateTodoRequest } from '../../requests/CreateTodoRequest'
 import getUserId from '../utils';
 import {createTodo} from "../../helpers/todos";
+import * as createError from 'http-errors';
 // import { createTodo } from '../../businessLogic/todos'
 
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-      const newTodo: CreateTodoRequest = JSON.parse(event.body)
+      const newTodo: CreateTodoRequest = JSON.parse(event.body);
+      if (!newTodo.name) throw new createError.BadRequest();
       // TODO: Implement creating a new TODO item - Done
       const userId: string = getUserId(event);
       const result = await createTodo(userId, newTodo);
